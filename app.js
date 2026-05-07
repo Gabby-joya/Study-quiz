@@ -3,7 +3,7 @@ let apiKey = '';
 function saveApiKey() {
   const val = document.getElementById('api-key-input').value.trim();
   if(!val) {
-    alert('Please enter a valid Google Gemini API key.');
+    alert('Please enter a valid OpenAI API key.');
     return;
   }
   apiKey = val;
@@ -11,19 +11,46 @@ function saveApiKey() {
   document.getElementById('api-key-input').style.borderColor = 'var(--success)';
 }
 
-async function callGemini(prompt, imagePart) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-  const parts = imagePart
-    ? [imagePart, { text: prompt }]
-    : [{ text: prompt }];
-  const res = await fetch(url, {
+async function callOpenAI(prompt) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts }] })
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }]
+    })
   });
   const data = await res.json();
   if(data.error) throw new Error(data.error.message);
-  return data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+  return data.choices?.[0]?.message?.content || '';
+}
+
+async function callOpenAIWithImage(prompt, imageData, imageType) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      max_tokens: 2000,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:${imageType};base64,${imageData}` } },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    })
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message);
+  return data.choices?.[0]?.message?.content || '';
 }
 
 let uploadedImageData = null;
@@ -40,7 +67,7 @@ let totalScore = 0;
 let scoredCount = 0;
 
 function switchInput(mode) {
-  document.querySelectorAll('#input-tabs .tab-btn').forEach((b,i)=>b.classList.remove('active'));
+  document.querySelectorAll('#input-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
   const tabs = document.querySelectorAll('#input-tabs .tab-btn');
   const idx = ['text','file','photo'].indexOf(mode);
   tabs[idx].classList.add('active');
@@ -115,7 +142,7 @@ async function generateContent() {
   errEl.classList.add('hidden');
 
   if(!apiKey) {
-    errEl.textContent = 'Please enter your Gemini API key in the banner above.';
+    errEl.textContent = 'Please enter your OpenAI API key in the banner above.';
     errEl.classList.remove('hidden');
     document.getElementById('api-key-input').focus();
     return;
@@ -157,13 +184,11 @@ async function generateContent() {
     const typeNames = quizTypes.map(t=>typeLabels[t]);
 
     let notesText = '';
-    let imagePart = null;
-
     if(notes.type==='photo') {
-      imagePart = { inline_data: { mime_type: notes.imageType, data: notes.imageData } };
-      notesText = await callGemini(
+      notesText = await callOpenAIWithImage(
         'Please extract all the text from this image of handwritten or printed notes. Return only the extracted text, nothing else.',
-        imagePart
+        notes.imageData,
+        notes.imageType
       );
     } else {
       notesText = notes.content;
@@ -185,7 +210,7 @@ Return ONLY a JSON array. No markdown, no backticks, no explanation. Each item m
 - For label_diagram only: "diagram_description": describe a simple diagram in text, "labels": array of 3-5 strings the student must identify
 
 Distribute question types roughly evenly. Return valid JSON only.`;
-      promises.push(callGemini(qPrompt));
+      promises.push(callOpenAI(qPrompt));
     }
 
     if(hasFlashcards) {
@@ -200,19 +225,17 @@ Return ONLY a JSON array. No markdown, no backticks, no explanation. Each item m
 - "back": the answer or definition
 
 Return valid JSON only.`;
-      promises.push(callGemini(fcPrompt));
+      promises.push(callOpenAI(fcPrompt));
     }
 
     const results = await Promise.all(promises);
     let rIdx = 0;
-
     let qData = null, fcData = null;
 
     if(quizTypes.length > 0) {
       const clean = results[rIdx++].replace(/```json|```/g,'').trim();
       qData = JSON.parse(clean);
     }
-
     if(hasFlashcards) {
       const clean = results[rIdx].replace(/```json|```/g,'').trim();
       fcData = JSON.parse(clean);
@@ -235,9 +258,7 @@ Return valid JSON only.`;
 }
 
 function showResults(quizTypes, hasFlashcards, notesText) {
-  const resultsSection = document.getElementById('results-section');
-  resultsSection.classList.remove('hidden');
-
+  document.getElementById('results-section').classList.remove('hidden');
   const flashcardsOnly = quizTypes.length===0 && hasFlashcards;
 
   if(!flashcardsOnly && quizData) {
@@ -266,7 +287,6 @@ function renderQuiz() {
   totalScore = 0;
   scoredCount = 0;
   updateScore();
-
   if(!quizData) return;
 
   quizData.forEach((q, idx) => {
@@ -373,11 +393,8 @@ function updateScore() {
 }
 
 function renderFlashcards() {
-  fcIndex = 0;
-  fcRatings = {};
-  fcFlipped = false;
-  updateCard();
-  renderDots();
+  fcIndex = 0; fcRatings = {}; fcFlipped = false;
+  updateCard(); renderDots();
 }
 
 function updateCard() {
@@ -428,15 +445,11 @@ function showFCSummary() {
   document.getElementById('fc-summary').classList.remove('hidden');
 }
 
-function restartCards() {
-  fcRatings = {};
-  renderFlashcards();
-}
+function restartCards() { fcRatings = {}; renderFlashcards(); }
 
 function renderDots() {
   if(!flashcardData) return;
-  const dotsEl = document.getElementById('fc-dots');
-  dotsEl.innerHTML = flashcardData.map((_,i)=>`<div class="fc-dot" id="dot-${i}"></div>`).join('');
+  document.getElementById('fc-dots').innerHTML = flashcardData.map((_,i)=>`<div class="fc-dot" id="dot-${i}"></div>`).join('');
   updateDots();
 }
 
@@ -462,8 +475,7 @@ function setView(v) {
 function resetAll() {
   quizData = null; flashcardData = null;
   uploadedImageData = null; uploadedFileText = null;
-  selectedTypes = new Set();
-  scored = {};
+  selectedTypes = new Set(); scored = {};
   document.querySelectorAll('.type-card').forEach(c=>c.classList.remove('selected','all-selected'));
   document.getElementById('notes-text').value = '';
   document.getElementById('file-preview').classList.add('hidden');
@@ -475,14 +487,13 @@ function resetAll() {
   switchInput('text');
 }
 
-// Drag and drop
 ['file-zone','photo-zone'].forEach(id=>{
   const el = document.getElementById(id);
   if(!el) return;
   el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drag-over');});
   el.addEventListener('dragleave',()=>el.classList.remove('drag-over'));
   el.addEventListener('drop',e=>{
-    e.preventDefault();el.classList.remove('drag-over');
+    e.preventDefault(); el.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
     if(!file) return;
     if(id==='file-zone') { const inp=document.getElementById('file-input'); const dt=new DataTransfer(); dt.items.add(file); inp.files=dt.files; handleFileUpload(inp); }
