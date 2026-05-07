@@ -15,6 +15,22 @@
     </div>
     <p class="subtitle">Turn your notes into quizzes and flashcards instantly</p>
   </div>
+  <!-- API KEY BANNER -->
+  <div id="api-key-banner" class="card" style="margin-bottom:16px; border-color:#bfdbfe; background:var(--primary-light);">
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div style="font-size:20px;">🔑</div>
+      <div style="flex:1; min-width:180px;">
+        <div style="font-size:13px; font-weight:600; color:var(--primary-dark); margin-bottom:4px;">Groq API Key required (Free!)</div>
+        <div style="font-size:12px; color:var(--text2);">Your key stays in-browser only and is never stored. Get a completely free key (no card needed) at <a href="https://console.groq.com/keys" target="_blank" style="color:var(--primary);">console.groq.com</a></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:220px;">
+        <input type="password" id="api-key-input" placeholder="gsk_..." style="flex:1; border:1px solid #93c5fd; border-radius:8px; padding:8px 12px; font-family:inherit; font-size:13px; outline:none; background:white; color:var(--text);" />
+        <button class="btn btn-primary btn-sm" onclick="saveApiKey()" style="white-space:nowrap;">Save key</button>
+      </div>
+      <div id="api-key-status" style="display:none; font-size:12px; font-weight:600; color:var(--success); white-space:nowrap;">✓ Key saved</div>
+    </div>
+  </div>
+
   <!-- SETUP SECTION -->
   <div id="setup-section">
     <div class="card">
@@ -201,23 +217,6 @@
   </div>
 
 </div>
-
-
-
-  <!-- POWERED BY FOOTER -->
-  <div style="text-align:center; padding:24px 16px 32px; font-size:12px; color:var(--text2); display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap;">
-    <span>Powered by</span>
-    <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--text);">
-      <img src="https://groq.com/favicon.ico" style="width:16px;height:16px;border-radius:3px;" onerror="this.style.display='none'" />
-      Groq
-    </span>
-    <span style="color:var(--border);">+</span>
-    <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--text);">
-      <img src="https://www.anthropic.com/favicon.ico" style="width:16px;height:16px;border-radius:3px;" onerror="this.style.display='none'" />
-      Claude by Anthropic
-    </span>
-  </div>
-
 <script src="app.js"></script>
 </body>
 </html>
