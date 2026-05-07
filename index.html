@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">📚</div>
+      <h1>StudyForge</h1>
+    </div>
+    <p class="subtitle">Turn your notes into quizzes and flashcards instantly</p>
+  </div>
+
+  <!-- API KEY BANNER -->
+  <div id="api-key-banner" class="card" style="margin-bottom:16px; border-color:#bfdbfe; background:var(--primary-light);">
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div style="font-size:20px;">🔑</div>
+      <div style="flex:1; min-width:180px;">
+        <div style="font-size:13px; font-weight:600; color:var(--primary-dark); margin-bottom:4px;">Google Gemini API Key required</div>
+        <div style="font-size:12px; color:var(--text2);">Your key stays in-browser only and is never stored. Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary);">aistudio.google.com</a></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:220px;">
+        <input type="password" id="api-key-input" placeholder="AIza..." style="flex:1; border:1px solid #93c5fd; border-radius:8px; padding:8px 12px; font-family:inherit; font-size:13px; outline:none; background:white; color:var(--text);" />
+        <button class="btn btn-primary btn-sm" onclick="saveApiKey()" style="white-space:nowrap;">Save key</button>
+      </div>
+      <div id="api-key-status" style="display:none; font-size:12px; font-weight:600; color:var(--success); white-space:nowrap;">✓ Key saved</div>
+    </div>
+  </div>
+
+  <!-- SETUP SECTION -->
+  <div id="setup-section">
+    <div class="card">
+      <div class="section-label">Step 1 — Upload your notes</div>
+
+      <div class="tab-row" id="input-tabs">
+        <button class="tab-btn active" onclick="switchInput('text')">✏️ Paste text</button>
+        <button class="tab-btn" onclick="switchInput('file')">📄 Text file</button>
+        <button class="tab-btn" onclick="switchInput('photo')">📷 Photo</button>
+      </div>
+
+      <!-- Text input -->
+      <div id="input-text">
+        <textarea id="notes-text" placeholder="Paste your notes here... The more detail you include, the better your quiz will be!"></textarea>
+      </div>
+
+      <!-- File upload -->
+      <div id="input-file" class="hidden">
+        <div class="upload-zone" onclick="document.getElementById('file-input').click()" id="file-zone">
+          <div class="upload-icon">📄</div>
+          <p><strong>Click to upload</strong> or drag and drop</p>
+          <p style="margin-top:4px; font-size:12px;">Supports .txt, .md, .docx files</p>
+          <input type="file" id="file-input" accept=".txt,.md,.doc,.docx" onchange="handleFileUpload(this)">
+        </div>
+        <div id="file-preview" class="hidden"></div>
+      </div>
+
+      <!-- Photo upload -->
+      <div id="input-photo" class="hidden">
+        <div class="upload-zone" onclick="document.getElementById('photo-input').click()" id="photo-zone">
+          <div class="upload-icon">📷</div>
+          <p><strong>Click to upload</strong> a photo of your notes</p>
+          <p style="margin-top:4px; font-size:12px;">Supports JPG, PNG, WEBP — AI will read the text</p>
+          <input type="file" id="photo-input" accept="image/*" onchange="handlePhotoUpload(this)">
+        </div>
+        <div id="photo-preview" class="hidden"></div>
+        <div class="intro-note" style="margin-top:12px;">
+          📖 Claude will use vision AI to extract the text from your photo automatically.
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz type -->
+    <div class="card">
+      <div class="section-label">Step 2 — Choose output type</div>
+
+      <div class="quiz-type-grid">
+        <div class="type-card" id="type-mc" onclick="toggleType('mc')">
+          <div class="type-icon">🅰️</div>
+          <div class="type-name">Multiple choice</div>
+          <div class="type-desc">4 options per Q</div>
+        </div>
+        <div class="type-card" id="type-sa" onclick="toggleType('sa')">
+          <div class="type-icon">✍️</div>
+          <div class="type-name">Short answer</div>
+          <div class="type-desc">Open-ended write-in</div>
+        </div>
+        <div class="type-card" id="type-fb" onclick="toggleType('fb')">
+          <div class="type-icon">🔤</div>
+          <div class="type-name">Fill in blank</div>
+          <div class="type-desc">Complete the sentence</div>
+        </div>
+        <div class="type-card" id="type-ld" onclick="toggleType('ld')">
+          <div class="type-icon">🗺️</div>
+          <div class="type-name">Label diagram</div>
+          <div class="type-desc">Identify parts</div>
+        </div>
+        <div class="type-card" id="type-fc" onclick="toggleType('fc')">
+          <div class="type-icon">🃏</div>
+          <div class="type-name">Flashcards</div>
+          <div class="type-desc">Study term-by-term</div>
+        </div>
+        <div class="type-card" id="type-all" onclick="selectAll()">
+          <div class="type-icon">⚡</div>
+          <div class="type-name">All combined</div>
+          <div class="type-desc">Mix everything</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generate -->
+    <div class="card" style="padding: 16px 20px;">
+      <div class="generate-row">
+        <div class="q-count-wrap">
+          <span>Number of questions:</span>
+          <select id="q-count">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="generateContent()" id="gen-btn">
+          ⚡ Generate study set
+        </button>
+      </div>
+      <div id="gen-error" class="hidden error-box"></div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading-section" class="hidden card">
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">Analyzing your notes...</div>
+      <div class="loading-sub">Claude is crafting personalized questions</div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-section" class="hidden">
+    <div class="results-header">
+      <div>
+        <div class="results-title" id="results-title">Your Study Set</div>
+        <div class="results-meta" id="results-meta"></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <div class="view-switcher" id="view-switcher" style="display:none;">
+          <button class="view-btn active" onclick="setView('quiz')" id="view-quiz-btn">📝 Quiz</button>
+          <button class="view-btn" onclick="setView('cards')" id="view-cards-btn">🃏 Flashcards</button>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="resetAll()">← New notes</button>
+      </div>
+    </div>
+
+    <!-- Score bar -->
+    <div class="score-bar hidden" id="score-bar">
+      <div>
+        <div class="score-num" id="score-num">0/0</div>
+        <div class="score-label">Correct answers</div>
+      </div>
+      <div class="progress-track" style="flex:1; min-width:120px;">
+        <div class="progress-fill" id="score-fill" style="width:0%"></div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="checkAll()">Check all</button>
+    </div>
+
+    <!-- Quiz view -->
+    <div id="quiz-view">
+      <div id="questions-container"></div>
+    </div>
+
+    <!-- Flashcard view -->
+    <div id="cards-view" class="hidden">
+      <div class="flashcard-container" onclick="flipCard()">
+        <div class="flashcard" id="flashcard">
+          <div class="card-face card-front">
+            <div class="card-face-label">Question</div>
+            <div class="card-face-text" id="card-front-text"></div>
+            <div class="card-hint">Tap to reveal answer</div>
+          </div>
+          <div class="card-face card-back">
+            <div class="card-face-label">Answer</div>
+            <div class="card-face-text" id="card-back-text"></div>
+            <div class="card-hint" style="color:var(--text3);">Tap to flip back</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fc-controls">
+        <button class="fc-nav" id="fc-prev" onclick="fcNav(-1)" disabled>←</button>
+        <div class="fc-counter" id="fc-counter">1 / 10</div>
+        <button class="fc-nav" id="fc-next" onclick="fcNav(1)">→</button>
+      </div>
+
+      <div class="fc-rating" id="fc-rating">
+        <button class="rating-btn know" onclick="rateCard('know')">✓ Got it</button>
+        <button class="rating-btn unsure" onclick="rateCard('unsure')">~ Almost</button>
+        <button class="rating-btn nope" onclick="rateCard('nope')">✗ Review</button>
+      </div>
+
+      <div class="fc-progress-dots" id="fc-dots"></div>
+
+      <div id="fc-summary" class="hidden">
+        <div class="all-done">
+          <div class="big-emoji">🎉</div>
+          <h2>Deck complete!</h2>
+          <p>Here's how you did on this round:</p>
+          <div class="stats-row" id="fc-stats-row"></div>
+          <button class="btn btn-primary" onclick="restartCards()">🔄 Restart deck</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<script src="app.js"></script>
+</body>
+</html>
