@@ -3,7 +3,7 @@ let apiKey = '';
 function saveApiKey() {
   const val = document.getElementById('api-key-input').value.trim();
   if(!val) {
-    alert('Please enter a valid OpenAI API key.');
+    alert('Please enter a valid Groq API key.');
     return;
   }
   apiKey = val;
@@ -11,15 +11,15 @@ function saveApiKey() {
   document.getElementById('api-key-input').style.borderColor = 'var(--success)';
 }
 
-async function callOpenAI(prompt) {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+async function callGroq(prompt) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'llama-3.3-70b-versatile',
       max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }]
     })
@@ -29,15 +29,15 @@ async function callOpenAI(prompt) {
   return data.choices?.[0]?.message?.content || '';
 }
 
-async function callOpenAIWithImage(prompt, imageData, imageType) {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+async function callGroqWithImage(prompt, imageData, imageType) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'llama-3.2-90b-vision-preview',
       max_tokens: 2000,
       messages: [{
         role: 'user',
@@ -142,7 +142,7 @@ async function generateContent() {
   errEl.classList.add('hidden');
 
   if(!apiKey) {
-    errEl.textContent = 'Please enter your OpenAI API key in the banner above.';
+    errEl.textContent = 'Please enter your Groq API key in the banner above.';
     errEl.classList.remove('hidden');
     document.getElementById('api-key-input').focus();
     return;
@@ -185,7 +185,7 @@ async function generateContent() {
 
     let notesText = '';
     if(notes.type==='photo') {
-      notesText = await callOpenAIWithImage(
+      notesText = await callGroqWithImage(
         'Please extract all the text from this image of handwritten or printed notes. Return only the extracted text, nothing else.',
         notes.imageData,
         notes.imageType
@@ -210,7 +210,7 @@ Return ONLY a JSON array. No markdown, no backticks, no explanation. Each item m
 - For label_diagram only: "diagram_description": describe a simple diagram in text, "labels": array of 3-5 strings the student must identify
 
 Distribute question types roughly evenly. Return valid JSON only.`;
-      promises.push(callOpenAI(qPrompt));
+      promises.push(callGroq(qPrompt));
     }
 
     if(hasFlashcards) {
@@ -225,7 +225,7 @@ Return ONLY a JSON array. No markdown, no backticks, no explanation. Each item m
 - "back": the answer or definition
 
 Return valid JSON only.`;
-      promises.push(callOpenAI(fcPrompt));
+      promises.push(callGroq(fcPrompt));
     }
 
     const results = await Promise.all(promises);
@@ -283,9 +283,7 @@ function showResults(quizTypes, hasFlashcards, notesText) {
 function renderQuiz() {
   const container = document.getElementById('questions-container');
   container.innerHTML = '';
-  scored = {};
-  totalScore = 0;
-  scoredCount = 0;
+  scored = {}; totalScore = 0; scoredCount = 0;
   updateScore();
   if(!quizData) return;
 
