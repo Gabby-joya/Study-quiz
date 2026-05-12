@@ -181,3 +181,88 @@ textarea::placeholder { color: var(--text3); }
   .flashcard-container { height: 220px; }
   .card-face-text { font-size: 15px; }
 }
+
+/* ── Dark mode ─────────────────────────────────────── */
+body.dark {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #273449;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
+}
+
+body.dark .card-front {
+  background: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%);
+}
+
+body.dark .upload-zone {
+  background: var(--surface2);
+}
+
+body.dark textarea,
+body.dark .fill-input,
+body.dark .sa-textarea {
+  background: var(--surface2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+body.dark .mc-option {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+body.dark .mc-option:hover:not(:disabled) {
+  background: #1e3a5f;
+}
+
+body.dark .type-card {
+  background: var(--surface2);
+}
+
+body.dark .type-card:hover,
+body.dark .type-card.selected {
+  background: #1e3a5f;
+}
+
+body.dark .diagram-area {
+  background: var(--surface2);
+}
+
+body.dark .score-bar,
+body.dark .question-block {
+  background: var(--surface);
+}
+
+/* Dark mode API banner */
+body.dark #api-banner-card {
+  background: #1e2d45 !important;
+  border-color: #2d4a6e !important;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  margin-top: 12px;
+  padding: 7px 16px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.theme-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+body.dark .theme-toggle:hover {
+  background: #1e3a5f;
+}

@@ -18,6 +18,24 @@ function saveApiKey() {
   document.getElementById('api-key-input').style.borderColor = 'var(--success)';
 }
 
+
+// ── Dark / Light mode ──────────────────────────────────
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark');
+  const btn = document.getElementById('theme-btn');
+  btn.textContent = isDark ? '☀️ Light mode' : '🌙 Dark mode';
+  localStorage.setItem('sf-theme', isDark ? 'dark' : 'light');
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('sf-theme');
+  if (saved === 'dark') {
+    document.body.classList.add('dark');
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = '☀️ Light mode';
+  }
+}
+
 // ── Tab switching ──────────────────────────────────────
 function switchInput(mode) {
   currentTab = mode;
@@ -459,17 +477,43 @@ function setView(v) {
 
 // ── Reset ──────────────────────────────────────────────
 function resetAll() {
+  // Clear state
   quizData = null; flashcardData = null;
   uploadedImages = []; uploadedFileText = null;
   selectedTypes = new Set(); scored = {};
+  fcIndex = 0; fcRatings = {}; fcFlipped = false;
+
+  // Clear inputs
   document.getElementById('notes-text').value = '';
   document.getElementById('file-preview').classList.add('hidden');
   document.getElementById('photo-preview').classList.add('hidden');
   document.getElementById('photo-preview').innerHTML = '';
+  const fileInput = document.getElementById('file-input');
+  if (fileInput) fileInput.value = '';
+  const photoInput = document.getElementById('photo-input');
+  if (photoInput) photoInput.value = '';
+
+  // Clear quiz type selections
   document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected', 'all-selected'));
+
+  // Reset results section fully
   document.getElementById('results-section').classList.add('hidden');
   document.getElementById('view-switcher').classList.add('hidden');
   document.getElementById('score-bar').classList.add('hidden');
+  document.getElementById('score-num').textContent = '0/0';
+  document.getElementById('score-fill').style.width = '0%';
+  document.getElementById('questions-container').innerHTML = '';
+  document.getElementById('fc-dots').innerHTML = '';
+  document.getElementById('fc-summary').classList.add('hidden');
+  document.getElementById('fc-stats-row').innerHTML = '';
+
+  // Reset view to quiz (so next time both start fresh)
+  document.getElementById('quiz-view').classList.remove('hidden');
+  document.getElementById('cards-view').classList.add('hidden');
+  document.getElementById('view-quiz-btn').classList.add('active');
+  document.getElementById('view-cards-btn').classList.remove('active');
+
+  // Show setup
   document.getElementById('setup-section').classList.remove('hidden');
   switchInput('text');
 }
@@ -543,6 +587,7 @@ async function downloadPDF() {
 
 // ── Drag and drop ──────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   ['file-zone', 'photo-zone'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
