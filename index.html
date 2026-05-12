@@ -62,9 +62,9 @@
       <div id="input-photo" class="hidden">
         <div class="upload-zone" onclick="document.getElementById('photo-input').click()" id="photo-zone">
           <div class="upload-icon">📷</div>
-          <p><strong>Click to upload</strong> a photo of your notes</p>
-          <p style="margin-top:4px; font-size:12px;">Supports JPG, PNG, WEBP — AI will read the text</p>
-          <input type="file" id="photo-input" accept="image/*" onchange="handlePhotoUpload(this)">
+          <p><strong>Click to upload</strong> photos of your notes</p>
+          <p style="margin-top:4px; font-size:12px;">Supports JPG, PNG, WEBP — select multiple images</p>
+          <input type="file" id="photo-input" accept="image/*" multiple onchange="handlePhotoUpload(this)">
         </div>
         <div id="photo-preview" class="hidden"></div>
         <div class="intro-note" style="margin-top:12px;">
@@ -116,12 +116,7 @@
       <div class="generate-row">
         <div class="q-count-wrap">
           <span>Number of questions:</span>
-          <select id="q-count">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-          </select>
+          <input type="number" id="q-count" value="10" min="1" max="50" style="width:70px; border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-family:inherit; font-size:14px; outline:none; color:var(--text); background:var(--surface);" />
         </div>
         <button class="btn btn-primary" onclick="generateContent()" id="gen-btn">
           ⚡ Generate study set
@@ -214,9 +209,20 @@
         </div>
       </div>
     </div>
+  <!-- PDF DOWNLOAD -->
+  <div id="pdf-download-bar" class="hidden" style="margin-top:20px;">
+    <div class="card" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:16px 20px; border-color:#bfdbfe; background:var(--primary-light);">
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--primary-dark);">📄 Download your study set</div>
+        <div style="font-size:12px; color:var(--text2); margin-top:2px;">Save your quiz or flashcards as a PDF</div>
+      </div>
+      <button class="btn btn-primary" onclick="downloadPDF()">⬇️ Download PDF</button>
+    </div>
   </div>
 
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -1,3 +1,93 @@
+async function downloadPDF() {
+  const btn = document.querySelector('[onclick="downloadPDF()"]');
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Generating PDF...';
+  btn.disabled = true;
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    const contentW = pageW - margin * 2;
+    let y = margin;
+
+    const addText = (text, fontSize, bold, color) => {
+      doc.setFontSize(fontSize);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setTextColor(...(color || [15, 23, 42]));
+      const lines = doc.splitTextToSize(text, contentW);
+      lines.forEach(line => {
+        if(y > pageH - margin) { doc.addPage(); y = margin; }
+        doc.text(line, margin, y);
+        y += fontSize * 1.4;
+      });
+    };
+
+    const addDivider = () => {
+      if(y > pageH - margin) { doc.addPage(); y = margin; }
+      doc.setDrawColor(226, 232, 240);
+      doc.line(margin, y, pageW - margin, y);
+      y += 12;
+    };
+
+    // Title
+    addText('StudyForge — Study Set', 20, true, [37, 99, 235]);
+    y += 6;
+    addText(new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }), 10, false, [100, 116, 139]);
+    y += 16;
+    addDivider();
+
+    // Quiz questions
+    if(quizData && quizData.length) {
+      addText('QUIZ QUESTIONS', 13, true, [37, 99, 235]);
+      y += 8;
+      quizData.forEach((q, i) => {
+        if(y > pageH - margin - 60) { doc.addPage(); y = margin; }
+        const typeLabel = { multiple_choice:'Multiple Choice', short_answer:'Short Answer', fill_in_blank:'Fill in Blank', label_diagram:'Label Diagram' };
+        addText(`Q${i+1}. [${typeLabel[q.type]||q.type}] ${q.question}`, 11, true);
+        if(q.type === 'multiple_choice' && q.options) {
+          const letters = ['A','B','C','D'];
+          q.options.forEach((opt, oi) => addText(`   ${letters[oi]}. ${opt}`, 10, false, [71, 85, 105]));
+        }
+        addText(`Answer: ${q.answer}`, 10, false, [5, 150, 105]);
+        y += 8;
+      });
+      y += 8;
+      addDivider();
+    }
+
+    // Flashcards
+    if(flashcardData && flashcardData.length) {
+      addText('FLASHCARDS', 13, true, [124, 58, 237]);
+      y += 8;
+      flashcardData.forEach((fc, i) => {
+        if(y > pageH - margin - 40) { doc.addPage(); y = margin; }
+        addText(`${i+1}. FRONT: ${fc.front}`, 11, true);
+        addText(`   BACK: ${fc.back}`, 10, false, [71, 85, 105]);
+        y += 6;
+      });
+    }
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let p = 1; p <= pageCount; p++) {
+      doc.setPage(p);
+      doc.setFontSize(9);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`StudyForge — Page ${p} of ${pageCount}`, pageW / 2, pageH - 20, { align: 'center' });
+    }
+
+    doc.save('studyforge-study-set.pdf');
+  } catch(err) {
+    alert('PDF generation failed: ' + err.message);
+  }
+
+  btn.textContent = orig;
+  btn.disabled = false;
+}
+
 let apiKey = '';
 
 function saveApiKey() {
@@ -126,18 +216,40 @@ function handleFileUpload(input) {
 }
 
 function handlePhotoUpload(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const base64 = e.target.result.split(',')[1];
-    uploadedImageData = base64;
-    uploadedImageType = file.type;
-    const prev = document.getElementById('photo-preview');
-    prev.innerHTML = `<div style="margin-top:12px;"><img src="${e.target.result}" style="max-height:180px;border-radius:8px;border:1px solid var(--border);max-width:100%;" /><div class="uploaded-preview" style="margin-top:8px;"><span class="preview-icon">🖼️</span><div><div class="preview-name">${file.name}</div><div class="preview-size">${(file.size/1024).toFixed(1)} KB</div></div></div></div>`;
-    prev.classList.remove('hidden');
-  };
-  reader.readAsDataURL(file);
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  uploadedImageData = [];
+  uploadedImageType = [];
+  const prev = document.getElementById('photo-preview');
+  prev.innerHTML = '';
+  prev.classList.remove('hidden');
+
+  let loaded = 0;
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:12px;';
+  prev.appendChild(grid);
+
+  files.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const base64 = e.target.result.split(',')[1];
+      uploadedImageData[idx] = base64;
+      uploadedImageType[idx] = file.type;
+      const thumb = document.createElement('div');
+      thumb.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);';
+      thumb.innerHTML = `<img src="${e.target.result}" style="width:100%;height:90px;object-fit:cover;display:block;" /><div style="font-size:10px;padding:4px 6px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.name}</div>`;
+      grid.appendChild(thumb);
+      loaded++;
+      if(loaded === files.length) {
+        const info = document.createElement('div');
+        info.className = 'uploaded-preview';
+        info.style.marginTop = '8px';
+        info.innerHTML = `<span class="preview-icon">🖼️</span><div><div class="preview-name">${files.length} image${files.length>1?'s':''} uploaded</div><div class="preview-size">Ready for AI text extraction</div></div>`;
+        prev.appendChild(info);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function getNotesContent() {
@@ -145,7 +257,7 @@ function getNotesContent() {
   const mode = ['text','file','photo'][Array.from(document.querySelectorAll('#input-tabs .tab-btn')).indexOf(activeTab)];
   if(mode==='text') return { type:'text', content: document.getElementById('notes-text').value.trim() };
   if(mode==='file') return { type:'text', content: uploadedFileText||'' };
-  if(mode==='photo') return { type:'photo', imageData: uploadedImageData, imageType: uploadedImageType };
+  if(mode==='photo') return { type:'photo', imageData: uploadedImageData, imageType: uploadedImageType }; // imageData may be array
   return { type:'text', content:'' };
 }
 
@@ -197,11 +309,18 @@ async function generateContent() {
 
     let notesText = '';
     if(notes.type==='photo') {
-      notesText = await callGroqWithImage(
-        'Please extract all the text from this image of handwritten or printed notes. Return only the extracted text, nothing else.',
-        notes.imageData,
-        notes.imageType
+      const imageDataArr = Array.isArray(notes.imageData) ? notes.imageData : [notes.imageData];
+      const imageTypeArr = Array.isArray(notes.imageType) ? notes.imageType : [notes.imageType];
+      const extractedTexts = await Promise.all(
+        imageDataArr.map((imgData, i) => callGroqWithImage(
+          'Please extract all the text from this image of handwritten or printed notes. Return only the extracted text, nothing else.',
+          imgData,
+          imageTypeArr[i]
+        ))
       );
+      notesText = extractedTexts.join('
+
+');
     } else {
       notesText = notes.content;
     }
@@ -271,6 +390,7 @@ Return valid JSON only.`;
 
 function showResults(quizTypes, hasFlashcards, notesText) {
   document.getElementById('results-section').classList.remove('hidden');
+  document.getElementById('pdf-download-bar').classList.remove('hidden');
   const flashcardsOnly = quizTypes.length===0 && hasFlashcards;
 
   if(!flashcardsOnly && quizData) {
@@ -491,6 +611,7 @@ function resetAll() {
   document.getElementById('file-preview').classList.add('hidden');
   document.getElementById('photo-preview').classList.add('hidden');
   document.getElementById('results-section').classList.add('hidden');
+  document.getElementById('pdf-download-bar').classList.add('hidden');
   document.getElementById('view-switcher').style.display='none';
   document.getElementById('score-bar').classList.add('hidden');
   document.getElementById('setup-section').classList.remove('hidden');
