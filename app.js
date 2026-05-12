@@ -1,10 +1,9 @@
- 
-async function downloadPDF() {
+ async function downloadPDF() {
   const btn = document.querySelector('[onclick="downloadPDF()"]');
   const orig = btn.textContent;
   btn.textContent = '⏳ Generating PDF...';
   btn.disabled = true;
- 
+
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -13,7 +12,7 @@ async function downloadPDF() {
     const margin = 40;
     const contentW = pageW - margin * 2;
     let y = margin;
- 
+
     const addText = (text, fontSize, bold, color) => {
       doc.setFontSize(fontSize);
       doc.setFont('helvetica', bold ? 'bold' : 'normal');
@@ -25,21 +24,21 @@ async function downloadPDF() {
         y += fontSize * 1.4;
       });
     };
- 
+
     const addDivider = () => {
       if(y > pageH - margin) { doc.addPage(); y = margin; }
       doc.setDrawColor(226, 232, 240);
       doc.line(margin, y, pageW - margin, y);
       y += 12;
     };
- 
+
     // Title
     addText('StudyForge — Study Set', 20, true, [37, 99, 235]);
     y += 6;
     addText(new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }), 10, false, [100, 116, 139]);
     y += 16;
     addDivider();
- 
+
     // Quiz questions
     if(quizData && quizData.length) {
       addText('QUIZ QUESTIONS', 13, true, [37, 99, 235]);
@@ -58,7 +57,7 @@ async function downloadPDF() {
       y += 8;
       addDivider();
     }
- 
+
     // Flashcards
     if(flashcardData && flashcardData.length) {
       addText('FLASHCARDS', 13, true, [124, 58, 237]);
@@ -70,7 +69,7 @@ async function downloadPDF() {
         y += 6;
       });
     }
- 
+
     // Footer
     const pageCount = doc.internal.getNumberOfPages();
     for(let p = 1; p <= pageCount; p++) {
@@ -79,18 +78,18 @@ async function downloadPDF() {
       doc.setTextColor(148, 163, 184);
       doc.text(`StudyForge — Page ${p} of ${pageCount}`, pageW / 2, pageH - 20, { align: 'center' });
     }
- 
+
     doc.save('studyforge-study-set.pdf');
   } catch(err) {
     alert('PDF generation failed: ' + err.message);
   }
- 
+
   btn.textContent = orig;
   btn.disabled = false;
 }
- 
+
 let apiKey = '';
- 
+
 function saveApiKey() {
   const val = document.getElementById('api-key-input').value.trim();
   if(!val) {
@@ -101,8 +100,8 @@ function saveApiKey() {
   document.getElementById('api-key-status').style.display = 'inline';
   document.getElementById('api-key-input').style.borderColor = 'var(--success)';
 }
- 
- 
+
+
 function saveApiKey() {
   const val = document.getElementById('api-key-input').value.trim();
   if(!val) {
@@ -113,7 +112,7 @@ function saveApiKey() {
   document.getElementById('api-key-status').style.display = 'inline';
   document.getElementById('api-key-input').style.borderColor = 'var(--success)';
 }
- 
+
 async function callGroq(prompt) {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -131,7 +130,7 @@ async function callGroq(prompt) {
   if(data.error) throw new Error(data.error.message);
   return data.choices?.[0]?.message?.content || '';
 }
- 
+
 async function callGroqWithImage(prompt, imageData, imageType) {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -155,7 +154,7 @@ async function callGroqWithImage(prompt, imageData, imageType) {
   if(data.error) throw new Error(data.error.message);
   return data.choices?.[0]?.message?.content || '';
 }
- 
+
 let uploadedImageData = null;
 let uploadedImageType = null;
 let uploadedFileText = null;
@@ -168,16 +167,20 @@ let fcFlipped = false;
 let scored = {};
 let totalScore = 0;
 let scoredCount = 0;
- 
+
 function switchInput(mode) {
-  document.querySelectorAll('#input-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
-  const tabs = document.querySelectorAll('#input-tabs .tab-btn');
-  const idx = ['text','file','photo'].indexOf(mode);
-  tabs[idx].classList.add('active');
-  ['input-text','input-file','input-photo'].forEach(id=>document.getElementById(id).classList.add('hidden'));
-  document.getElementById('input-'+mode).classList.remove('hidden');
+  ['input-text','input-file','input-photo'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.classList.add('hidden');
+  });
+  const target = document.getElementById('input-' + mode);
+  if(target) target.classList.remove('hidden');
+  document.querySelectorAll('#input-tabs .tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if(btn.getAttribute('data-mode') === mode) btn.classList.add('active');
+  });
 }
- 
+
 function toggleType(t) {
   if(t==='all') return;
   const el = document.getElementById('type-'+t);
@@ -190,7 +193,7 @@ function toggleType(t) {
   }
   document.getElementById('type-all').classList.remove('all-selected');
 }
- 
+
 function selectAll() {
   const all = ['mc','sa','fb','ld','fc'];
   const allSelected = all.every(t=>selectedTypes.has(t));
@@ -202,7 +205,7 @@ function selectAll() {
     document.getElementById('type-all').classList.add('all-selected');
   }
 }
- 
+
 function handleFileUpload(input) {
   const file = input.files[0];
   if(!file) return;
@@ -215,7 +218,7 @@ function handleFileUpload(input) {
   };
   reader.readAsText(file);
 }
- 
+
 function handlePhotoUpload(input) {
   const files = Array.from(input.files);
   if(!files.length) return;
@@ -224,12 +227,12 @@ function handlePhotoUpload(input) {
   const prev = document.getElementById('photo-preview');
   prev.innerHTML = '';
   prev.classList.remove('hidden');
- 
+
   let loaded = 0;
   const grid = document.createElement('div');
   grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:12px;';
   prev.appendChild(grid);
- 
+
   files.forEach((file, idx) => {
     const reader = new FileReader();
     reader.onload = e => {
@@ -252,7 +255,7 @@ function handlePhotoUpload(input) {
     reader.readAsDataURL(file);
   });
 }
- 
+
 function getNotesContent() {
   const activeTab = document.querySelector('#input-tabs .tab-btn.active');
   const mode = ['text','file','photo'][Array.from(document.querySelectorAll('#input-tabs .tab-btn')).indexOf(activeTab)];
@@ -261,24 +264,24 @@ function getNotesContent() {
   if(mode==='photo') return { type:'photo', imageData: uploadedImageData, imageType: uploadedImageType }; // imageData may be array
   return { type:'text', content:'' };
 }
- 
+
 async function generateContent() {
   const errEl = document.getElementById('gen-error');
   errEl.classList.add('hidden');
- 
+
   if(!apiKey) {
     errEl.textContent = 'Please enter your Groq API key in the banner above.';
     errEl.classList.remove('hidden');
     document.getElementById('api-key-input').focus();
     return;
   }
- 
+
   if(selectedTypes.size===0) {
     errEl.textContent = 'Please select at least one quiz type.';
     errEl.classList.remove('hidden');
     return;
   }
- 
+
   const notes = getNotesContent();
   if(notes.type==='text' && !notes.content) {
     errEl.textContent = 'Please add your notes — paste text, upload a file, or take a photo.';
@@ -290,24 +293,24 @@ async function generateContent() {
     errEl.classList.remove('hidden');
     return;
   }
- 
+
   const qCount = parseInt(document.getElementById('q-count').value);
   const types = Array.from(selectedTypes);
   const flashcardsOnly = types.length===1 && types[0]==='fc';
   const hasFlashcards = types.includes('fc');
   const quizTypes = types.filter(t=>t!=='fc');
- 
+
   document.getElementById('setup-section').classList.add('hidden');
   document.getElementById('loading-section').classList.remove('hidden');
- 
+
   const loadingMsgs = ['Analyzing your notes...','Crafting questions...','Building your study set...','Almost done!'];
   let li = 0;
   const lInterval = setInterval(()=>{ li=(li+1)%loadingMsgs.length; document.getElementById('loading-text').textContent=loadingMsgs[li]; }, 2000);
- 
+
   try {
     const typeLabels = { mc:'multiple_choice', sa:'short_answer', fb:'fill_in_blank', ld:'label_diagram' };
     const typeNames = quizTypes.map(t=>typeLabels[t]);
- 
+
     let notesText = '';
     if(notes.type==='photo') {
       const imageDataArr = Array.isArray(notes.imageData) ? notes.imageData : [notes.imageData];
@@ -323,45 +326,45 @@ async function generateContent() {
     } else {
       notesText = notes.content;
     }
- 
+
     const promises = [];
- 
+
     if(quizTypes.length > 0) {
       const qPrompt = `You are a study quiz generator. Given the following notes, create ${qCount} study questions. Use these types: ${typeNames.join(', ')}.
- 
+
 Notes:
 ${notesText}
- 
+
 Return ONLY a JSON array. No markdown, no backticks, no explanation. Each item must have:
 - "type": one of "multiple_choice" | "short_answer" | "fill_in_blank" | "label_diagram"
 - "question": the question text (for fill_in_blank, put ___ where the blank is)
 - "answer": the correct answer
 - For multiple_choice only: "options": array of exactly 4 strings (include the correct answer)
 - For label_diagram only: "diagram_description": describe a simple diagram in text, "labels": array of 3-5 strings the student must identify
- 
+
 Distribute question types roughly evenly. Return valid JSON only.`;
       promises.push(callGroq(qPrompt));
     }
- 
+
     if(hasFlashcards) {
       const fcCount = flashcardsOnly ? qCount : Math.ceil(qCount/2);
       const fcPrompt = `You are a flashcard generator. Given the following notes, create ${fcCount} flashcards for studying.
- 
+
 Notes:
 ${notesText}
- 
+
 Return ONLY a JSON array. No markdown, no backticks, no explanation. Each item must have:
 - "front": the question or term (keep it concise)
 - "back": the answer or definition
- 
+
 Return valid JSON only.`;
       promises.push(callGroq(fcPrompt));
     }
- 
+
     const results = await Promise.all(promises);
     let rIdx = 0;
     let qData = null, fcData = null;
- 
+
     if(quizTypes.length > 0) {
       const clean = results[rIdx++].replace(/```json|```/g,'').trim();
       qData = JSON.parse(clean);
@@ -370,14 +373,14 @@ Return valid JSON only.`;
       const clean = results[rIdx].replace(/```json|```/g,'').trim();
       fcData = JSON.parse(clean);
     }
- 
+
     quizData = qData;
     flashcardData = fcData;
- 
+
     clearInterval(lInterval);
     document.getElementById('loading-section').classList.add('hidden');
     showResults(quizTypes, hasFlashcards, notesText);
- 
+
   } catch(err) {
     clearInterval(lInterval);
     document.getElementById('loading-section').classList.add('hidden');
@@ -386,19 +389,19 @@ Return valid JSON only.`;
     errEl.classList.remove('hidden');
   }
 }
- 
+
 function showResults(quizTypes, hasFlashcards, notesText) {
   document.getElementById('results-section').classList.remove('hidden');
   document.getElementById('pdf-download-bar').classList.remove('hidden');
   const flashcardsOnly = quizTypes.length===0 && hasFlashcards;
- 
+
   if(!flashcardsOnly && quizData) {
     document.getElementById('results-title').textContent = 'Your Quiz';
     document.getElementById('results-meta').textContent = `${quizData.length} questions generated from your notes`;
     document.getElementById('score-bar').classList.remove('hidden');
     renderQuiz();
   }
- 
+
   if(hasFlashcards && flashcardData) {
     if(flashcardsOnly) {
       document.getElementById('results-title').textContent = 'Your Flashcards';
@@ -410,28 +413,28 @@ function showResults(quizTypes, hasFlashcards, notesText) {
     renderFlashcards();
   }
 }
- 
+
 function renderQuiz() {
   const container = document.getElementById('questions-container');
   container.innerHTML = '';
   scored = {}; totalScore = 0; scoredCount = 0;
   updateScore();
   if(!quizData) return;
- 
+
   quizData.forEach((q, idx) => {
     const block = document.createElement('div');
     block.className = 'question-block';
     block.id = 'q-block-'+idx;
- 
+
     const badgeMap = { multiple_choice:'badge-mc', short_answer:'badge-sa', fill_in_blank:'badge-fb', label_diagram:'badge-ld' };
     const typeLabel = { multiple_choice:'Multiple choice', short_answer:'Short answer', fill_in_blank:'Fill in blank', label_diagram:'Label diagram' };
- 
+
     let innerHTML = `<div class="q-header">
       <div class="q-num">Q${idx+1}</div>
       <span class="q-badge ${badgeMap[q.type]||'badge-mc'}">${typeLabel[q.type]||q.type}</span>
       <div class="q-text">${q.question}</div>
     </div>`;
- 
+
     if(q.type==='multiple_choice') {
       const letters = ['A','B','C','D'];
       innerHTML += `<div class="mc-options">`;
@@ -457,12 +460,12 @@ function renderQuiz() {
       innerHTML += `<button class="check-btn" onclick="revealLD(${idx})">Show labels</button>`;
       innerHTML += `<div class="answer-reveal" id="ans-${idx}"><strong>Correct labels</strong>${(q.labels||[]).join(', ')}</div>`;
     }
- 
+
     block.innerHTML = innerHTML;
     container.appendChild(block);
   });
 }
- 
+
 function selectMC(idx, chosen, correct, btn) {
   const block = document.getElementById('q-block-'+idx);
   if(block.dataset.answered) return;
@@ -478,12 +481,12 @@ function selectMC(idx, chosen, correct, btn) {
   scored[idx] = isCorrect;
   updateScore();
 }
- 
+
 function revealSA(idx) {
   document.getElementById('ans-'+idx).classList.add('show');
   document.getElementById('q-block-'+idx).classList.add('answered');
 }
- 
+
 function checkFB(idx, correct) {
   const inp = document.getElementById('fb-'+idx);
   const val = inp.value.trim().toLowerCase();
@@ -496,12 +499,12 @@ function checkFB(idx, correct) {
   scored[idx] = isCorrect;
   updateScore();
 }
- 
+
 function revealLD(idx) {
   document.getElementById('ans-'+idx).classList.add('show');
   document.getElementById('q-block-'+idx).classList.add('answered');
 }
- 
+
 function checkAll() {
   if(!quizData) return;
   quizData.forEach((q,idx)=>{
@@ -512,7 +515,7 @@ function checkAll() {
     }
   });
 }
- 
+
 function updateScore() {
   const vals = Object.values(scored);
   const correct = vals.filter(v=>v===true).length;
@@ -520,12 +523,12 @@ function updateScore() {
   document.getElementById('score-num').textContent = `${correct}/${total}`;
   document.getElementById('score-fill').style.width = total>0 ? `${(correct/total)*100}%` : '0%';
 }
- 
+
 function renderFlashcards() {
   fcIndex = 0; fcRatings = {}; fcFlipped = false;
   updateCard(); renderDots();
 }
- 
+
 function updateCard() {
   if(!flashcardData || !flashcardData.length) return;
   const card = flashcardData[fcIndex];
@@ -540,17 +543,17 @@ function updateCard() {
   document.getElementById('fc-rating').style.opacity='1';
   document.getElementById('fc-summary').classList.add('hidden');
 }
- 
+
 function flipCard() {
   fcFlipped = !fcFlipped;
   document.getElementById('flashcard').classList.toggle('flipped', fcFlipped);
 }
- 
+
 function fcNav(dir) {
   fcIndex = Math.max(0, Math.min(flashcardData.length-1, fcIndex+dir));
   updateCard();
 }
- 
+
 function rateCard(rating) {
   fcRatings[fcIndex] = rating;
   updateDots();
@@ -560,7 +563,7 @@ function rateCard(rating) {
     showFCSummary();
   }
 }
- 
+
 function showFCSummary() {
   document.getElementById('fc-rating').style.opacity='0.3';
   const know = Object.values(fcRatings).filter(r=>r==='know').length;
@@ -573,15 +576,15 @@ function showFCSummary() {
   `;
   document.getElementById('fc-summary').classList.remove('hidden');
 }
- 
+
 function restartCards() { fcRatings = {}; renderFlashcards(); }
- 
+
 function renderDots() {
   if(!flashcardData) return;
   document.getElementById('fc-dots').innerHTML = flashcardData.map((_,i)=>`<div class="fc-dot" id="dot-${i}"></div>`).join('');
   updateDots();
 }
- 
+
 function updateDots() {
   if(!flashcardData) return;
   flashcardData.forEach((_,i)=>{
@@ -592,7 +595,7 @@ function updateDots() {
     if(i===fcIndex) d.classList.add('current');
   });
 }
- 
+
 function setView(v) {
   document.getElementById('quiz-view').classList.toggle('hidden', v!=='quiz');
   document.getElementById('cards-view').classList.toggle('hidden', v!=='cards');
@@ -600,7 +603,7 @@ function setView(v) {
   document.getElementById('view-cards-btn').classList.toggle('active', v==='cards');
   document.getElementById('score-bar').classList.toggle('hidden', v!=='quiz');
 }
- 
+
 function resetAll() {
   quizData = null; flashcardData = null;
   uploadedImageData = null; uploadedFileText = null;
@@ -616,7 +619,7 @@ function resetAll() {
   document.getElementById('setup-section').classList.remove('hidden');
   switchInput('text');
 }
- 
+
 ['file-zone','photo-zone'].forEach(id=>{
   const el = document.getElementById(id);
   if(!el) return;
