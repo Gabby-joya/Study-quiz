@@ -10,11 +10,12 @@ let scored = {};
 let currentTab = 'text';
 
 // ── API Key ────────────────────────────────────────────
-// Key is loaded from env.js (which reads from .env). Users cannot set their own.
-function loadEnvKey() {
-  if (typeof ENV !== 'undefined' && ENV.API_KEY) {
-    apiKey = ENV.API_KEY;
-  }
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val) { alert('Please enter a Groq API key.'); return; }
+  apiKey = val;
+  document.getElementById('api-key-status').style.display = 'inline';
+  document.getElementById('api-key-input').style.borderColor = 'var(--success)';
 }
 
 
@@ -157,7 +158,7 @@ async function generateContent() {
   errEl.classList.add('hidden');
 
   if (!apiKey) {
-    errEl.textContent = 'API key not configured. Please contact the site owner.';
+    errEl.textContent = 'Please enter your Groq API key above.';
     errEl.classList.remove('hidden');
     return;
   }
@@ -587,7 +588,6 @@ async function downloadPDF() {
 // ── Drag and drop ──────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  loadEnvKey();
   ['file-zone', 'photo-zone'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
